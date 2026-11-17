@@ -7,20 +7,25 @@ module.exports = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: '#121212',
-          card: '#1E1E1E',
-          soft: '#262626',
-          border: '#303030',
+          DEFAULT: '#0B0D13',
+          card: '#131622',
+          soft: '#1B1F30',
+          border: '#23293D',
         },
         gold: {
-          DEFAULT: '#D9822B',
-          light: '#F2A65A',
-          soft: 'rgba(217, 130, 43, 0.14)',
-          line: 'rgba(217, 130, 43, 0.35)',
+          DEFAULT: '#F59E0B',
+          light: '#FBBF24',
+          soft: 'rgba(245, 158, 11, 0.12)',
+          line: 'rgba(245, 158, 11, 0.28)',
+        },
+        accent: {
+          blue: '#38BDF8',
+          cyan: '#2DD4BF',
+          glow: 'rgba(56, 189, 248, 0.12)',
         },
         danger: {
-          DEFAULT: '#E5484D',
-          soft: 'rgba(229, 72, 77, 0.12)',
+          DEFAULT: '#F43F5E',
+          soft: 'rgba(244, 63, 94, 0.12)',
         },
       },
       borderRadius: {

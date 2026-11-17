@@ -210,7 +210,7 @@ export default function ResultScreen() {
 
             <View className="mt-5 items-center">
               <View className="flex-row items-center gap-2 rounded-full border border-gold-line bg-gold-soft px-4 py-2">
-                <ScanFace size={14} color="#D9822B" />
+                <ScanFace size={14} color="#F59E0B" />
                 <Text className="text-[11.5px] font-semibold text-gold">
                   Bentuk Wajah: {faceShape} • Rambut: {hairLabel}
                 </Text>
@@ -291,7 +291,7 @@ export default function ResultScreen() {
 
             <View className="mt-5 rounded-3xl border border-ink-border bg-ink-card p-5">
               <View className="flex-row items-center gap-2">
-                <Sparkles size={15} color="#D9822B" />
+                <Sparkles size={15} color="#F59E0B" />
                 <Text className="text-[13.5px] font-bold text-white">Kenapa Cocok Untukmu</Text>
               </View>
               <Text className="mt-3 text-[12.5px] leading-6 text-white/70">
@@ -300,7 +300,7 @@ export default function ResultScreen() {
 
               <View className="mt-4 rounded-2xl border border-white/5 bg-white/[0.03] p-3.5">
                 <View className="flex-row items-center gap-1.5">
-                  <Info size={11} color="#D9822B" />
+                  <Info size={11} color="#F59E0B" />
                   <Text className="text-[10px] font-bold uppercase tracking-widest text-gold">
                     Catatan tekstur rambut
                   </Text>
@@ -316,7 +316,7 @@ export default function ResultScreen() {
             <View className="mt-4 rounded-3xl border-2 border-gold/60 bg-[#1C1712] p-5">
               <View className="flex-row items-start gap-3">
                 <View className="h-10 w-10 items-center justify-center rounded-2xl bg-gold-soft">
-                  <Scissors size={19} color="#D9822B" />
+                  <Scissors size={19} color="#F59E0B" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-[14px] font-extrabold text-white">
@@ -348,7 +348,7 @@ export default function ResultScreen() {
                 onPress={() => setPromptOpen((open) => !open)}
                 className="flex-row items-center gap-3 p-4">
                 <View className="h-9 w-9 items-center justify-center rounded-xl bg-gold-soft">
-                  <Wand2 size={16} color="#D9822B" />
+                  <Wand2 size={16} color="#F59E0B" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-[12.5px] font-bold text-white">Prompt Visual (English)</Text>

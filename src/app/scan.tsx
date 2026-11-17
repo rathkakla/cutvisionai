@@ -209,14 +209,14 @@ export default function ScanScreen() {
                   <View className="flex-1 items-center justify-center px-8">
                     {!permission ? (
                       <>
-                        <ActivityIndicator color="#D9822B" />
+                        <ActivityIndicator color="#F59E0B" />
                         <Text className="mt-3 text-center text-xs text-white/50">
                           Menyiapkan kamera...
                         </Text>
                       </>
                     ) : permission.granted ? (
                       <>
-                        <CameraOff size={30} color="#D9822B" />
+                        <CameraOff size={30} color="#F59E0B" />
                         <Text className="mt-3 text-center text-sm font-semibold text-white">
                           Kamera sedang tidak aktif
                         </Text>
@@ -238,7 +238,7 @@ export default function ScanScreen() {
                     ) : (
                       <>
                         <View className="h-14 w-14 items-center justify-center rounded-2xl bg-gold-soft">
-                          <Camera size={26} color="#D9822B" />
+                          <Camera size={26} color="#F59E0B" />
                         </View>
                         <Text className="mt-4 text-center text-sm font-bold text-white">
                           {permission.canAskAgain ? 'Izinkan akses kamera' : 'Izin kamera diblokir'}
@@ -324,7 +324,7 @@ export default function ScanScreen() {
                 accessibilityRole="button"
                 onPress={pickFromGallery}
                 className="flex-row items-center gap-1.5 rounded-full border border-ink-border bg-ink-card px-3 py-2">
-                <ImagePlus size={13} color="#D9822B" />
+                <ImagePlus size={13} color="#F59E0B" />
                 <Text className="text-[11px] font-semibold text-white/80">
                   Pilih dari Galeri
                 </Text>

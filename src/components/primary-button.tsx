@@ -21,15 +21,15 @@ interface PrimaryButtonProps extends Omit<PressableProps, 'children' | 'style'> 
 }
 
 const CONTAINER: Record<ButtonVariant, string> = {
-  gold: 'bg-gold',
-  outline: 'border border-white/20 bg-transparent',
-  danger: 'border border-danger/60 bg-danger-soft',
+  gold: 'bg-gold active:opacity-90 shadow-lg shadow-gold/20',
+  outline: 'border border-white/15 bg-ink-card active:bg-ink-soft',
+  danger: 'border border-danger/40 bg-danger-soft active:opacity-80',
 };
 
 const LABEL: Record<ButtonVariant, string> = {
-  gold: 'text-ink',
-  outline: 'text-white',
-  danger: 'text-danger',
+  gold: 'text-[#0B0D13] font-black',
+  outline: 'text-white font-bold',
+  danger: 'text-danger font-bold',
 };
 
 export function PrimaryButton({
@@ -51,23 +51,23 @@ export function PrimaryButton({
         accessibilityState={{ disabled: isDisabled, busy: loading }}
         disabled={isDisabled}
         className={`w-full flex-row items-center justify-center gap-2.5 rounded-2xl px-5 py-4 ${
-          isDisabled ? 'border border-ink-border bg-ink-soft' : CONTAINER[variant]
+          isDisabled ? 'border border-ink-border bg-ink-soft/60' : CONTAINER[variant]
         }`}
         {...rest}>
         {loading ? (
-          <ActivityIndicator size="small" color={variant === 'gold' ? '#121212' : '#D9822B'} />
+          <ActivityIndicator size="small" color={variant === 'gold' ? '#0B0D13' : '#F59E0B'} />
         ) : (
           icon
         )}
         <Text
-          className={`text-center text-[15px] font-bold ${
-            isDisabled ? 'text-white/35' : LABEL[variant]
+          className={`text-center text-[15px] ${
+            isDisabled ? 'text-white/30 font-bold' : LABEL[variant]
           }`}>
           {label}
         </Text>
       </Pressable>
       {caption ? (
-        <Text className="mt-2 text-center text-xs text-white/40">{caption}</Text>
+        <Text className="mt-2 text-center text-xs text-white/45">{caption}</Text>
       ) : null}
     </View>
   );

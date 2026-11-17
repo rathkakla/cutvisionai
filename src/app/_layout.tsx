@@ -16,10 +16,10 @@ const cutVisionTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#D9822B',
-    background: '#121212',
-    card: '#121212',
-    border: '#303030',
+    primary: '#F59E0B',
+    background: '#0B0D13',
+    card: '#131622',
+    border: '#23293D',
     text: '#FFFFFF',
   },
 };
@@ -37,10 +37,11 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: '#121212' },
+              contentStyle: { backgroundColor: '#0B0D13' },
               animation: 'fade',
             }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
             <Stack.Screen name="scan" />
             <Stack.Screen name="analyzing" />
             <Stack.Screen name="result" />

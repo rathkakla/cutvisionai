@@ -22,15 +22,15 @@ export function ScreenHeader({ title, step }: ScreenHeaderProps) {
             router.replace('/');
           }
         }}
-        className="h-10 w-10 items-center justify-center rounded-full border border-ink-border bg-ink-card">
-        <ChevronLeft size={20} color="#FFFFFF" />
+        className="h-10 w-10 items-center justify-center rounded-2xl border border-ink-border bg-ink-card active:bg-ink-soft">
+        <ChevronLeft size={20} color="#F59E0B" />
       </Pressable>
 
-      <Text className="flex-1 text-lg font-bold text-white">{title}</Text>
+      <Text className="flex-1 text-lg font-extrabold tracking-tight text-white">{title}</Text>
 
       {step ? (
-        <View className="rounded-full border border-gold-line bg-gold-soft px-3 py-1.5">
-          <Text className="text-[11px] font-semibold tracking-wide text-gold">{step}</Text>
+        <View className="rounded-full border border-gold/30 bg-gold-soft px-3 py-1">
+          <Text className="text-[11px] font-bold tracking-wider text-gold">{step}</Text>
         </View>
       ) : null}
     </View>

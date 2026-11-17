@@ -71,7 +71,7 @@ export function TryOnPreview({
 
         {isGenerating ? (
           <View className="absolute right-3 top-3 flex-row items-center gap-1.5 rounded-full border border-gold/40 bg-black/60 px-2.5 py-1">
-            <ActivityIndicator size="small" color="#D9822B" />
+            <ActivityIndicator size="small" color="#F59E0B" />
             <Text className="text-[9.5px] font-semibold text-white/80">Membuat simulasi…</Text>
           </View>
         ) : null}
@@ -100,7 +100,7 @@ export function TryOnPreview({
                 <Path
                   d={hairPath}
                   fill="#3A2A20"
-                  stroke="#D9822B"
+                  stroke="#F59E0B"
                   strokeOpacity={0.85}
                   strokeWidth={4}
                 />

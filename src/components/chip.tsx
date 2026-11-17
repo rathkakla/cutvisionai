@@ -14,12 +14,14 @@ export function Chip({ label, selected, onPress }: ChipProps) {
       accessibilityState={{ selected }}
       onPress={onPress}
       className={`flex-row items-center gap-1.5 rounded-full border px-4 py-2.5 ${
-        selected ? 'border-gold bg-gold' : 'border-ink-border bg-ink-card'
+        selected
+          ? 'border-gold bg-gold shadow-md shadow-gold/25'
+          : 'border-ink-border bg-ink-card active:bg-ink-soft'
       }`}>
-      {selected ? <Check size={14} color="#121212" strokeWidth={3} /> : null}
+      {selected ? <Check size={14} color="#0B0D13" strokeWidth={3} /> : null}
       <Text
-        className={`text-[13px] font-semibold ${
-          selected ? 'text-ink' : 'text-white/75'
+        className={`text-[13px] ${
+          selected ? 'font-bold text-[#0B0D13]' : 'font-medium text-white/80'
         }`}>
         {label}
       </Text>

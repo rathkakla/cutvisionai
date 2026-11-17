@@ -43,7 +43,7 @@ export function FaceGuideOverlay({ width, height }: FaceGuideOverlayProps) {
         cy={centerY}
         rx={radiusX + 8}
         ry={radiusY + 8}
-        stroke="#D9822B"
+        stroke="#F59E0B"
         strokeOpacity={0.35}
         strokeWidth={1}
         fill="none"
@@ -51,28 +51,28 @@ export function FaceGuideOverlay({ width, height }: FaceGuideOverlayProps) {
 
       <Path
         d={`M ${left} ${top + bracket} L ${left} ${top} L ${left + bracket} ${top}`}
-        stroke="#D9822B"
+        stroke="#F59E0B"
         strokeWidth={3}
         strokeLinecap="round"
         fill="none"
       />
       <Path
         d={`M ${right - bracket} ${top} L ${right} ${top} L ${right} ${top + bracket}`}
-        stroke="#D9822B"
+        stroke="#F59E0B"
         strokeWidth={3}
         strokeLinecap="round"
         fill="none"
       />
       <Path
         d={`M ${left} ${bottom - bracket} L ${left} ${bottom} L ${left + bracket} ${bottom}`}
-        stroke="#D9822B"
+        stroke="#F59E0B"
         strokeWidth={3}
         strokeLinecap="round"
         fill="none"
       />
       <Path
         d={`M ${right - bracket} ${bottom} L ${right} ${bottom} L ${right} ${bottom - bracket}`}
-        stroke="#D9822B"
+        stroke="#F59E0B"
         strokeWidth={3}
         strokeLinecap="round"
         fill="none"

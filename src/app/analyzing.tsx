@@ -281,7 +281,7 @@ export default function AnalyzingScreen() {
           <View className="items-center pt-4">
             <View className="items-center">
               <View className="flex-row items-center gap-2">
-                <ScanFace size={16} color="#D9822B" />
+                <ScanFace size={16} color="#F59E0B" />
                 <Text className="text-[11px] font-bold uppercase tracking-widest text-gold">
                   {phase === 'error' ? 'Belum selesai' : 'Menganalisis'}
                 </Text>
@@ -301,7 +301,7 @@ export default function AnalyzingScreen() {
               style={{
                 width: previewWidth,
                 height: previewHeight,
-                shadowColor: '#D9822B',
+                shadowColor: '#F59E0B',
                 shadowOpacity: 0.18,
                 shadowRadius: 24,
                 shadowOffset: { width: 0, height: 10 },
@@ -351,12 +351,12 @@ export default function AnalyzingScreen() {
                   cx={50}
                   cy={62}
                   r={22}
-                  stroke="#D9822B"
+                  stroke="#F59E0B"
                   strokeOpacity={0.35}
                   strokeWidth={0.5}
                   fill="none"
                 />
-                <Circle cx={50} cy={62} r={0.7} fill="#D9822B" />
+                <Circle cx={50} cy={62} r={0.7} fill="#F59E0B" />
               </Svg>
 
               <Svg
@@ -368,28 +368,28 @@ export default function AnalyzingScreen() {
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
                 <Path
                   d="M4 14 L4 4 L14 4"
-                  stroke="#D9822B"
+                  stroke="#F59E0B"
                   strokeWidth={1.6}
                   fill="none"
                   strokeLinecap="round"
                 />
                 <Path
                   d="M86 4 L96 4 L96 14"
-                  stroke="#D9822B"
+                  stroke="#F59E0B"
                   strokeWidth={1.6}
                   fill="none"
                   strokeLinecap="round"
                 />
                 <Path
                   d="M4 86 L4 96 L14 96"
-                  stroke="#D9822B"
+                  stroke="#F59E0B"
                   strokeWidth={1.6}
                   fill="none"
                   strokeLinecap="round"
                 />
                 <Path
                   d="M86 96 L96 96 L96 86"
-                  stroke="#D9822B"
+                  stroke="#F59E0B"
                   strokeWidth={1.6}
                   fill="none"
                   strokeLinecap="round"
@@ -404,10 +404,10 @@ export default function AnalyzingScreen() {
                     right: 10,
                     height: 26,
                     borderBottomWidth: 2,
-                    borderBottomColor: '#D9822B',
+                    borderBottomColor: '#F59E0B',
                     backgroundColor: 'rgba(217, 130, 43, 0.18)',
                     transform: [{ translateY }],
-                    shadowColor: '#D9822B',
+                    shadowColor: '#F59E0B',
                     shadowOpacity: 0.9,
                     shadowRadius: 12,
                     shadowOffset: { width: 0, height: 0 },
@@ -534,7 +534,7 @@ export default function AnalyzingScreen() {
                         {isDone ? (
                           <Check size={13} color="#121212" strokeWidth={3.5} />
                         ) : isActive ? (
-                          <ActivityIndicator size="small" color="#D9822B" />
+                          <ActivityIndicator size="small" color="#F59E0B" />
                         ) : (
                           <View className="h-1.5 w-1.5 rounded-full bg-white/25" />
                         )}
