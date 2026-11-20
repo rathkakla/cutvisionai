@@ -22,7 +22,7 @@ import { useCutVision } from '@/context/cutvision-context';
 import { getHairTypeLabel } from '@/data/hairstyles';
 import { readPhotoAsBase64 } from '@/lib/image';
 import { releasePickedPhotos } from '@/lib/photo-picker';
-import { TryOnError, generateVirtualTryOn, pickTryOnAspectRatio } from '@/services/tryOnService';
+import { TryOnError, generateVirtualTryOn, isTryOnMock, pickTryOnAspectRatio } from '@/services/tryOnService';
 
 export default function ResultScreen() {
   const router = useRouter();
@@ -166,11 +166,13 @@ export default function ResultScreen() {
   const activeIndex = Math.min(selectedIndex, styles.length - 1);
   const selected = styles[activeIndex] ?? styles[0];
   const hairLabel = getHairTypeLabel(hairType);
-  const faceShape = recommendation.bentukWajah || analysis?.faceShape || 'Oval';
+  const faceShape = analysis?.faceShape || recommendation.bentukWajah || 'Oval';
+  const tryOnIsMock = isTryOnMock();
   const sourceLabel =
     analysis?.source === 'mediapipe'
-      ? 'Diukur dari 468 landmark MediaPipe'
+      ? 'Diukur dari 478 landmark MediaPipe'
       : 'Estimasi rasio perangkat (fallback)';
+  const ratioLabel = analysis?.source === 'mediapipe' ? null : 'Angka rasio tidak ditampilkan pada mode estimasi.';
 
   const handleReset = () => {
     // Hentikan render yang masih jalan, lalu hapus foto asli dan seluruh cache
@@ -219,7 +221,7 @@ export default function ResultScreen() {
                 Ini yang paling pas{'\n'}buat kamu
               </Text>
               <Text className="mt-2 max-w-[300px] text-center text-[12.5px] leading-5 text-white/45">
-                {styles.length} opsi dari DeepSeek, disesuaikan dengan bentuk wajah, tekstur
+                {styles.length} opsi dari Gemini, disesuaikan dengan bentuk wajah, tekstur
                 rambut asli, dan preferensimu.
               </Text>
               <View className="mt-3 flex-row items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1">
@@ -230,12 +232,19 @@ export default function ResultScreen() {
                 />
                 <Text className="text-[10px] text-white/40">{sourceLabel}</Text>
               </View>
+              {ratioLabel ? (
+                <Text className="mt-2 text-[10px] text-white/30">{ratioLabel}</Text>
+              ) : null}
             </View>
 
             <View className="mt-6">
               <SectionHeading
                 title="Preview Virtual Try-On"
-                hint="Render AI dari fotomu. Hanya rambut yang berubah; wajah, ekspresi, dan latar tetap sama."
+                hint={
+                  tryOnIsMock
+                    ? 'Mode contoh: gambar di bawah hanya ilustrasi, bukan hasil render fotomu. Aktifkan mode AI untuk melihat simulasi sebenarnya.'
+                    : 'Render AI dari fotomu. Hanya rambut yang berubah; wajah, ekspresi, dan latar tetap sama.'
+                }
               />
               <View className="mt-3">
                 <TryOnPreview
@@ -244,6 +253,7 @@ export default function ResultScreen() {
                   styleName={selected.namaGaya}
                   resultUri={tryOnImages[activeIndex] ?? null}
                   isGenerating={Boolean(tryOnLoading[activeIndex])}
+                  isMock={tryOnIsMock}
                   errorMessage={tryOnErrors[activeIndex] ?? null}
                   onRetry={() => {
                     void requestTryOn(activeIndex, true);

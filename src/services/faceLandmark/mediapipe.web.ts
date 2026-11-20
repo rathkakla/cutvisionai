@@ -1,6 +1,7 @@
-import type { FaceLandmarker } from '@mediapipe/tasks-vision';
+import type { FaceLandmarker, NormalizedLandmark } from '@mediapipe/tasks-vision';
 
-import type { DetectedLandmarks, FacePhotoInput } from './types';
+import { MAX_POSE_DEGREES } from './classify';
+import { FaceCaptureError, type DetectedLandmarks, type FacePhotoInput, type HeadPose } from './types';
 
 /**
  * Runtime MediaPipe hanya tersedia di web. WASM + WebGL tidak bisa dijalankan di
@@ -202,11 +203,13 @@ async function createLandmarker(): Promise<FaceLandmarker> {
             delegate,
           },
           runningMode: 'IMAGE',
-          numFaces: 1,
+          // 2 wajah supaya foto berdua bisa ditolak, bukan salah pilih wajah.
+          numFaces: 2,
           minFaceDetectionConfidence: 0.5,
           minFacePresenceConfidence: 0.5,
           outputFaceBlendshapes: false,
-          outputFacialTransformationMatrixes: false,
+          // Matriks ini dipakai untuk menghitung orientasi kepala (yaw/pitch/roll).
+          outputFacialTransformationMatrixes: true,
         }),
         INIT_TIMEOUT_MS,
         'Waktu habis saat menyiapkan model face-landmark.',
@@ -245,10 +248,60 @@ function loadImage(uri: string): Promise<HTMLImageElement> {
   });
 }
 
+/* ------------------------------- Pose & QA ------------------------------- */
+
+function faceWidth(landmarks: NormalizedLandmark[]): number {
+  const right = landmarks[234];
+  const left = landmarks[454];
+  if (!right || !left) {
+    return 0;
+  }
+  return Math.abs(left.x - right.x);
+}
+
+/** Roll dihitung dari garis mata — bebas konvensi matriks, jadi selalu konsisten. */
+function eyeRollDegrees(landmarks: NormalizedLandmark[], width: number, height: number): number {
+  const right = landmarks[33];
+  const left = landmarks[263];
+  if (!right || !left) {
+    return 0;
+  }
+  const dx = (left.x - right.x) * width;
+  const dy = (left.y - right.y) * height;
+  return (Math.atan2(dy, dx) * 180) / Math.PI;
+}
+
 /**
- * Mendeteksi 468 landmark wajah dari URI foto (blob/data URL di web).
- * Melempar error yang jelas bila WebGL, model, atau wajah tidak tersedia — pemanggil
- * akan menangkapnya dan memakai fallback rasio.
+ * Matriks 4x4 MediaPipe menyimpan rotasi kepala. Ambiguitas row/column-major antar
+ * binding tidak jadi masalah besar di sini: ambang yaw (15°) dan pitch (18°) berdekatan,
+ * sehingga tertukar pun hasil gating tetap masuk akal. Roll tidak diambil dari sini.
+ */
+function poseFromMatrix(data: number[] | undefined): Pick<HeadPose, 'yaw' | 'pitch'> | null {
+  if (!data || data.length < 16) {
+    return null;
+  }
+
+  const at = (row: number, col: number) => data[row * 4 + col] ?? 0;
+  const clamp = (value: number) => Math.max(-1, Math.min(1, value));
+  const toDegrees = (radians: number) => (radians * 180) / Math.PI;
+
+  const pitch = Math.asin(clamp(-at(2, 1)));
+  const yaw = Math.atan2(at(2, 0), at(2, 2));
+
+  return {
+    yaw: Number.isFinite(yaw) ? toDegrees(yaw) : 0,
+    pitch: Number.isFinite(pitch) ? toDegrees(pitch) : 0,
+  };
+}
+
+const MIN_IMAGE_SIDE = 320;
+
+/**
+ * Mendeteksi 478 landmark wajah dari URI foto (blob/data URL di web).
+ *
+ * Kesalahan yang disebabkan foto (tidak ada wajah, dua orang, kepala menoleh, foto
+ * terlalu kecil) dilempar sebagai `FaceCaptureError` supaya pemanggil meminta foto
+ * ulang — bukan diam-diam diganti estimasi rasio karangan.
  */
 export async function detectFaceLandmarks(photo: FacePhotoInput): Promise<DetectedLandmarks> {
   const landmarker = await getLandmarker();
@@ -258,21 +311,73 @@ export async function detectFaceLandmarks(photo: FacePhotoInput): Promise<Detect
     'Waktu habis saat membaca foto.',
   );
 
+  const imageWidth = image.naturalWidth || image.width || photo.width;
+  const imageHeight = image.naturalHeight || image.height || photo.height;
+
+  if (Math.min(imageWidth, imageHeight) < MIN_IMAGE_SIDE) {
+    throw new FaceCaptureError(
+      'Resolusi foto terlalu kecil untuk diukur.',
+      'too-small',
+      'Gunakan foto yang lebih besar, minimal 320 piksel di sisi terpendek.',
+    );
+  }
+
   const result = await withTimeout(
     Promise.resolve(landmarker.detect(image)),
     DETECT_TIMEOUT_MS,
     'Waktu habis saat mendeteksi wajah.',
   );
 
-  const landmarks = result.faceLandmarks?.[0];
+  const faces = result.faceLandmarks ?? [];
 
-  if (!landmarks || landmarks.length === 0) {
-    throw new Error('Tidak ada wajah yang terdeteksi di foto.');
+  if (faces.length === 0 || !faces[0] || faces[0].length === 0) {
+    throw new FaceCaptureError(
+      'Tidak ada wajah yang terdeteksi di foto.',
+      'no-face',
+      'Pastikan wajah terlihat jelas, tidak tertutup rambut atau masker, dan pencahayaan cukup.',
+    );
+  }
+
+  if (faces.length > 1) {
+    const [primary, second] = faces;
+    const primaryWidth = faceWidth(primary);
+    const secondWidth = faceWidth(second);
+
+    // Wajah kedua yang jauh lebih kecil biasanya deteksi palsu di latar belakang.
+    if (primaryWidth > 0 && secondWidth >= primaryWidth * 0.45) {
+      throw new FaceCaptureError(
+        'Ada lebih dari satu wajah di foto.',
+        'multi-face',
+        'Gunakan foto yang hanya berisi wajahmu sendiri agar pengukuran tidak tertukar.',
+      );
+    }
+  }
+
+  const landmarks = faces[0];
+  const roll = eyeRollDegrees(landmarks, imageWidth, imageHeight);
+  const matrixPose = poseFromMatrix(result.facialTransformationMatrixes?.[0]?.data);
+
+  const pose: HeadPose | undefined = matrixPose ? { ...matrixPose, roll } : undefined;
+
+  if (pose) {
+    const tooTilted = Math.abs(pose.roll) > MAX_POSE_DEGREES.roll;
+    const tooTurned = Math.abs(pose.yaw) > MAX_POSE_DEGREES.yaw;
+    const tooRaised = Math.abs(pose.pitch) > MAX_POSE_DEGREES.pitch;
+
+    if (tooTilted || tooTurned || tooRaised) {
+      throw new FaceCaptureError(
+        'Posisi kepala belum tegak, jadi rasio wajah tidak bisa diukur dengan akurat.',
+        'pose',
+        'Hadap lurus ke kamera, dagu sejajar lantai, dan jangan memiringkan kepala.',
+      );
+    }
   }
 
   return {
     points: landmarks.map((point) => ({ x: point.x, y: point.y })),
-    imageWidth: image.naturalWidth || image.width || photo.width,
-    imageHeight: image.naturalHeight || image.height || photo.height,
+    imageWidth,
+    imageHeight,
+    pose,
+    faceCount: faces.length,
   };
 }

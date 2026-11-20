@@ -43,8 +43,8 @@ const FEATURES = [
 ];
 
 const PRIVACY_POINTS = [
-  'Foto wajah diproses sementara di perangkat untuk membaca bentuk wajah dan tekstur rambut.',
-  'Saat simulasi dibuat, foto dikirim ke Fal.ai hanya untuk merender gaya rambut. DeepSeek hanya menerima bentuk wajah, tipe rambut, dan preferensimu.',
+  'Foto wajah diproses sementara di perangkat untuk membaca bentuk wajah dan tekstur rambut. Hasil ukurnya tidak dikirim ke mana pun.',
+  'Gemini hanya menerima bentuk wajah, angka rasio, tipe rambut, dan preferensimu — bukan fotonya. Saat simulasi try-on dibuat, foto dikirim ke penyedia render AI hanya untuk gaya rambut itu.',
   'Tekan "Hapus Foto & Ulangi" di akhir sesi untuk menghapus foto asli dan semua hasil simulasi dari memori aplikasi.',
 ];
 

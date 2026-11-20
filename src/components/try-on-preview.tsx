@@ -13,9 +13,11 @@ interface TryOnPreviewProps {
   photoUri: string;
   variantIndex: number;
   styleName: string;
-  /** Hasil render Fal.ai untuk gaya ini; null berarti masih memakai foto asli. */
+  /** Hasil render AI untuk gaya ini; null berarti masih memakai foto asli. */
   resultUri?: string | null;
   isGenerating?: boolean;
+  /** Mode mock mengembalikan gambar contoh, jadi harus diberi label jujur. */
+  isMock?: boolean;
   errorMessage?: string | null;
   onRetry?: () => void;
 }
@@ -30,6 +32,7 @@ export function TryOnPreview({
   styleName,
   resultUri,
   isGenerating = false,
+  isMock = false,
   errorMessage,
   onRetry,
 }: TryOnPreviewProps) {
@@ -65,7 +68,11 @@ export function TryOnPreview({
         <View className="absolute left-3 top-3 flex-row items-center gap-1.5 rounded-full border border-white/15 bg-black/45 px-3 py-1">
           <View className={`h-1.5 w-1.5 rounded-full ${hasResult ? 'bg-gold' : 'bg-white/45'}`} />
           <Text className="text-[9.5px] font-semibold tracking-wide text-white/75">
-            {hasResult ? 'SIMULASI AI' : 'PREVIEW VIRTUAL TRY-ON'}
+            {hasResult
+              ? isMock
+                ? 'CONTOH RENDER · BUKAN HASIL AI'
+                : 'SIMULASI AI'
+              : 'PREVIEW VIRTUAL TRY-ON'}
           </Text>
         </View>
 
@@ -122,7 +129,7 @@ export function TryOnPreview({
                 className={`text-[9.5px] font-extrabold ${
                   hasResult ? 'text-emerald-300' : 'text-ink'
                 }`}>
-                {hasResult ? 'HASIL AI' : 'AI PICK'}
+                {hasResult ? (isMock ? 'CONTOH' : 'HASIL AI') : 'AI PICK'}
               </Text>
             </View>
           </View>

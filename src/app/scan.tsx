@@ -43,10 +43,14 @@ interface LocalPhoto {
   height: number;
 }
 
+/** Jeda minimum antar-ketukan tombol galeri, supaya tidak membuka dua dialog. */
+const DOUBLE_TAP_MS = 700;
+
 export default function ScanScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
   const permissionRequested = useRef(false);
+  const lastPickAt = useRef(0);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [isFocused, setIsFocused] = useState(true);
@@ -89,6 +93,15 @@ export default function ScanScreen() {
   };
 
   const pickFromGallery = async () => {
+    // Cegah ketukan ganda membuka dua dialog file sekaligus. Batasnya berbasis waktu
+    // (bukan menunggu promise), supaya kalau browser tidak pernah mengirim sinyal
+    // "dialog ditutup", tombol galeri tetap bisa dipakai lagi beberapa saat kemudian.
+    const now = Date.now();
+    if (now - lastPickAt.current < DOUBLE_TAP_MS) {
+      return;
+    }
+    lastPickAt.current = now;
+
     try {
       setMessage(null);
 
@@ -104,6 +117,13 @@ export default function ScanScreen() {
 
       if (outcome.status === 'denied') {
         setMessage('Akses galeri ditolak. Aktifkan izin galeri di pengaturan HP, ya.');
+        return;
+      }
+
+      if (outcome.status === 'unsupported') {
+        setMessage(
+          'Foto itu tidak bisa dibaca browser ini. Pilih foto JPG/PNG, atau ubah format kamera iPhone ke "Paling Kompatibel" lalu coba lagi.',
+        );
       }
     } catch {
       setMessage('Gagal membuka galeri. Coba lagi sebentar.');

@@ -26,6 +26,9 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# artefak pengujian browser (Playwright MCP)
+.playwright-mcp/
+
 # macOS
 .DS_Store
 *.pem

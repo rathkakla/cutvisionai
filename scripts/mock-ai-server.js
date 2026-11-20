@@ -60,6 +60,9 @@ const state = {
   deepseekMode: 'ok',
   deepseekCount: 0,
   lastDeepseek: null,
+  geminiMode: 'ok',
+  geminiCount: 0,
+  lastGemini: null,
   falMode: 'ok',
   falSubmitCount: 0,
   falStatusCount: 0,
@@ -363,6 +366,111 @@ async function handleFal(req, res) {
   json(res, 404, { detail: `Mock tidak mengenali request ${req.method} ${targetPath}` });
 }
 
+/* --------------------------------- Gemini -------------------------------- */
+
+function summarizeGemini(body) {
+  try {
+    const parsed = JSON.parse(body);
+    const user = (parsed.contents || []).find((item) => item.role === 'user');
+    const parts = user?.parts || [];
+    const textPart = parts.find((part) => typeof part.text === 'string');
+    const imagePart = parts.find((part) => part.inline_data || part.inlineData);
+
+    return {
+      responseMimeType: parsed.generationConfig?.responseMimeType,
+      responseModalities: parsed.generationConfig?.responseModalities,
+      hasSchema: Boolean(parsed.generationConfig?.responseSchema),
+      aspectRatio: parsed.generationConfig?.imageConfig?.aspectRatio,
+      userPrompt: String(textPart?.text ?? '').slice(0, 400),
+      hasImage: Boolean(imagePart),
+      imageBytes: imagePart?.inline_data?.data?.length ?? 0,
+    };
+  } catch {
+    return { parseError: true, raw: body.slice(0, 200) };
+  }
+}
+
+async function handleGemini(req, res, model) {
+  const raw = await readBody(req);
+  state.geminiCount += 1;
+  state.lastGemini = { model, ...summarizeGemini(raw) };
+
+  if (state.geminiMode === 'slow') {
+    await delay(4000);
+  }
+
+  if (state.geminiMode === 'fail') {
+    json(res, 503, {
+      error: { code: 503, message: 'mock Gemini 503: high demand', status: 'UNAVAILABLE' },
+    });
+    return;
+  }
+
+  if (state.geminiMode === 'unauthorized') {
+    json(res, 401, {
+      error: { code: 401, message: 'API key not valid. Please pass a valid API key.', status: 'UNAUTHENTICATED' },
+    });
+    return;
+  }
+
+  const wantsImage = (state.lastGemini?.responseModalities || []).includes('IMAGE');
+
+  if (wantsImage) {
+    if (state.geminiMode === 'invalid') {
+      json(res, 200, {
+        candidates: [{ content: { parts: [{ text: 'Maaf, gambar tidak bisa dibuat.' }] }, finishReason: 'STOP' }],
+      });
+      return;
+    }
+
+    const image = MOCK_IMAGES[(state.geminiCount - 1) % MOCK_IMAGES.length];
+
+    json(res, 200, {
+      candidates: [
+        {
+          content: {
+            parts: [
+              { inlineData: { mimeType: 'image/png', data: image.toString('base64') } },
+            ],
+          },
+          finishReason: 'STOP',
+        },
+      ],
+      usageMetadata: { promptTokenCount: 600, candidatesTokenCount: 1100, totalTokenCount: 1700 },
+    });
+    return;
+  }
+
+  if (state.geminiMode === 'invalid') {
+    json(res, 200, {
+      candidates: [{ content: { parts: [{ text: 'Maaf, ini bukan JSON sama sekali.' }] }, finishReason: 'STOP' }],
+    });
+    return;
+  }
+
+  const prompt = String(state.lastGemini?.userPrompt ?? '');
+  const shapeMatch = prompt.match(/"bentukWajah"\s*:\s*"([^"]+)"/);
+
+  json(res, 200, {
+    candidates: [
+      {
+        content: {
+          parts: [
+            {
+              text: JSON.stringify({
+                bentukWajah: shapeMatch ? shapeMatch[1] : 'Oval',
+                rekomendasi: RECOMMENDATIONS,
+              }),
+            },
+          ],
+        },
+        finishReason: 'STOP',
+      },
+    ],
+    usageMetadata: { promptTokenCount: 900, candidatesTokenCount: 700, totalTokenCount: 1600 },
+  });
+}
+
 /* --------------------------------- Server -------------------------------- */
 
 const server = http.createServer(async (req, res) => {
@@ -381,6 +489,8 @@ const server = http.createServer(async (req, res) => {
       ok: true,
       deepseekMode: state.deepseekMode,
       deepseekCount: state.deepseekCount,
+      geminiMode: state.geminiMode,
+      geminiCount: state.geminiCount,
       falMode: state.falMode,
       falSubmitCount: state.falSubmitCount,
       falProxyPath: FAL_PROXY_PATH,
@@ -400,6 +510,29 @@ const server = http.createServer(async (req, res) => {
     state.falMode = MODES.has(mode) ? mode : 'ok';
     state.falStatusCount = 0;
     json(res, 200, { mode: state.falMode });
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/gemini/set') {
+    const mode = url.searchParams.get('mode') || 'ok';
+    state.geminiMode = MODES.has(mode) ? mode : 'ok';
+    json(res, 200, { mode: state.geminiMode });
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/gemini/last') {
+    json(res, 200, {
+      mode: state.geminiMode,
+      requestCount: state.geminiCount,
+      lastBody: state.lastGemini,
+    });
+    return;
+  }
+
+  const geminiMatch = url.pathname.match(/^\/v1beta\/models\/([^/:]+):generateContent$/);
+
+  if (req.method === 'POST' && geminiMatch) {
+    await handleGemini(req, res, geminiMatch[1]);
     return;
   }
 

@@ -22,24 +22,20 @@ import { PrivacyBadge } from '@/components/privacy-badge';
 import { useCutVision } from '@/context/cutvision-context';
 import { getHairTypeLabel, getPreferenceLabel } from '@/data/hairstyles';
 import { analyzeFace } from '@/services/faceAnalysisService';
-import {
-  DeepSeekError,
-  getHairstyleRecommendations,
-  type DeepSeekErrorCode,
-} from '@/services/deepseekService';
-import { formatRatio } from '@/services/faceLandmark/classify';
-import type { FaceAnalysis } from '@/services/faceLandmark/types';
+import { GeminiError, getHairstyleRecommendations, type GeminiErrorCode } from '@/services/geminiService';
+import { formatRatio, hasRealRatios } from '@/services/faceLandmark/classify';
+import { FaceCaptureError, type FaceAnalysis } from '@/services/faceLandmark/types';
 
 type Phase = 'detecting' | 'recommending' | 'done' | 'error';
 
 interface PipelineError {
-  code: DeepSeekErrorCode | 'unknown';
+  code: GeminiErrorCode | 'capture' | 'unknown';
   message: string;
 }
 
 const STAGES = [
   'Mendeteksi landmark & mengukur rasio wajah...',
-  'Meminta rekomendasi ke DeepSeek...',
+  'Meminta rekomendasi ke Gemini...',
   'Menyusun panduan untuk barber...',
 ];
 
@@ -72,16 +68,22 @@ function stageForPhase(phase: Phase): number {
 
 function errorHint(code: PipelineError['code']): string {
   switch (code) {
+    case 'capture':
+      return 'Ambil foto ulang dengan pencahayaan cukup, wajah sendirian, dan kepala tegak menghadap kamera.';
     case 'missing-key':
-      return 'Tambahkan EXPO_PUBLIC_DEEPSEEK_API_KEY=sk-... di file .env, lalu restart Expo.';
+      return 'Tambahkan EXPO_PUBLIC_GEMINI_API_KEY=AQ... di file .env, lalu restart Expo.';
     case 'network':
-      return 'Periksa koneksi internet. Di versi web, browser juga bisa memblokir permintaan langsung ke DeepSeek karena CORS.';
+      return 'Periksa koneksi internet lalu coba lagi.';
     case 'timeout':
-      return 'Koneksi ke DeepSeek terlalu lama. Coba lagi saat jaringan lebih stabil.';
+      return 'Koneksi ke Gemini terlalu lama. Coba lagi saat jaringan lebih stabil.';
+    case 'rate-limit':
+      return 'Kuota harian Gemini untuk akun ini sedang penuh. Tunggu beberapa saat atau ganti model di EXPO_PUBLIC_GEMINI_MODEL.';
+    case 'unavailable':
+      return 'Model Gemini sedang sibuk. Tekan Coba Lagi — aplikasi otomatis mencoba model lain.';
     case 'http':
-      return 'Periksa kuota/saldo akun DeepSeek, lalu coba lagi.';
+      return 'Periksa API key dan nama model Gemini, lalu coba lagi.';
     case 'invalid-response':
-      return 'Format jawaban DeepSeek tidak sesuai. Tekan Coba Lagi untuk meminta ulang.';
+      return 'Format jawaban Gemini tidak sesuai. Tekan Coba Lagi untuk meminta ulang.';
     default:
       return 'Terjadi kendala tak terduga. Coba lagi atau kembali ke layar scan.';
   }
@@ -127,7 +129,24 @@ export default function AnalyzingScreen() {
         setPhase('detecting');
         setProgress(PROGRESS_BY_PHASE.detecting);
 
-        current = await analyzeFace(photo);
+        try {
+          current = await analyzeFace(photo);
+        } catch (error) {
+          if (cancelled) {
+            return;
+          }
+
+          setPhase('error');
+          setPipelineError({
+            code: error instanceof FaceCaptureError ? 'capture' : 'unknown',
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Wajah tidak bisa dianalisis dari foto ini. Coba foto lain.',
+          });
+          return;
+        }
+
         if (cancelled) {
           return;
         }
@@ -142,6 +161,9 @@ export default function AnalyzingScreen() {
       try {
         const result = await getHairstyleRecommendations({
           bentukWajah: current.faceShape,
+          ratios: current.measurements.ratios,
+          confidence: current.confidence,
+          alternatifBentuk: current.alternatives,
           tipeRambut: getHairTypeLabel(hairType),
           preferensiGaya: getPreferenceLabel(preference),
         });
@@ -166,11 +188,11 @@ export default function AnalyzingScreen() {
 
         setPhase('error');
         setPipelineError({
-          code: error instanceof DeepSeekError ? error.code : 'unknown',
+          code: error instanceof GeminiError ? error.code : 'unknown',
           message:
             error instanceof Error
               ? error.message
-              : 'Rekomendasi DeepSeek gagal dibuat. Coba lagi.',
+              : 'Rekomendasi Gemini gagal dibuat. Coba lagi.',
         });
       }
     };
@@ -262,6 +284,11 @@ export default function AnalyzingScreen() {
       ? 'Face-landmark · MediaPipe'
       : 'Estimasi rasio · fallback';
 
+  // 478 titik terlalu padat untuk SVG di HP; tiap titik ketiga sudah cukup sebagai bukti.
+  const landmarkDots =
+    analysis?.source === 'mediapipe' ? (analysis.landmarks ?? []).filter((_, index) => index % 3 === 0) : [];
+  const showRatios = analysis ? hasRealRatios(analysis.measurements) : false;
+
   return (
     <View className="flex-1 bg-ink">
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 px-6">
@@ -310,11 +337,36 @@ export default function AnalyzingScreen() {
               <Image
                 source={{ uri: photo.uri }}
                 style={{ flex: 1 }}
-                contentFit="cover"
+                contentFit="contain"
                 transition={180}
               />
 
               <View className="absolute bottom-0 left-0 right-0 top-0 bg-black/35" />
+
+              {/*
+                Overlay landmark: bukti visual bahwa wajah benar-benar diukur, bukan
+                diestimasi. Ditampilkan hanya kalau sumbernya MediaPipe.
+              */}
+              {landmarkDots.length > 0 ? (
+                <Svg
+                  width="100%"
+                  height="100%"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  pointerEvents="none"
+                  style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                  {landmarkDots.map((point, index) => (
+                    <Circle
+                      key={`lm-${index}`}
+                      cx={point.x * 100}
+                      cy={point.y * 100}
+                      r={0.32}
+                      fill="#F59E0B"
+                      fillOpacity={0.75}
+                    />
+                  ))}
+                </Svg>
+              ) : null}
 
               <Svg
                 width="100%"
@@ -470,14 +522,17 @@ export default function AnalyzingScreen() {
                         {item.label}
                       </Text>
                       <Text className="mt-0.5 text-[14px] font-bold text-gold-light">
-                        {formatRatio(item.value)}×
+                        {showRatios ? `${formatRatio(item.value)}×` : '—'}
                       </Text>
                     </View>
                   ))}
                 </View>
 
                 <Text className="mt-2.5 text-[10px] leading-4 text-white/35">
-                  Rasio terhadap lebar tulang pipi. {analysis.note}
+                  {showRatios
+                    ? 'Rasio terhadap lebar tulang pipi. '
+                    : 'Angka rasio disembunyikan karena foto tidak diukur dengan landmark. '}
+                  {analysis.note}
                 </Text>
               </View>
             ) : null}
@@ -491,7 +546,7 @@ export default function AnalyzingScreen() {
                     <AlertTriangle size={16} color="#E5484D" />
                   )}
                   <Text className="flex-1 text-[13px] font-bold text-white">
-                    Rekomendasi belum berhasil
+                    {pipelineError.code === 'capture' ? 'Foto belum bisa dipakai' : 'Rekomendasi belum berhasil'}
                   </Text>
                 </View>
 
@@ -503,13 +558,15 @@ export default function AnalyzingScreen() {
                 </Text>
 
                 <View className="mt-4 gap-2.5">
+                  {pipelineError.code === 'capture' ? null : (
+                    <PrimaryButton
+                      label="Coba Lagi"
+                      icon={<RotateCcw size={16} color="#121212" />}
+                      onPress={handleRetry}
+                    />
+                  )}
                   <PrimaryButton
-                    label="Coba Lagi"
-                    icon={<RotateCcw size={16} color="#121212" />}
-                    onPress={handleRetry}
-                  />
-                  <PrimaryButton
-                    label="Kembali ke Scan"
+                    label={pipelineError.code === 'capture' ? 'Ambil Foto Ulang' : 'Kembali ke Scan'}
                     variant="outline"
                     onPress={handleBack}
                   />
@@ -563,7 +620,7 @@ export default function AnalyzingScreen() {
           <View className="mt-2 flex-row items-center justify-between">
             <Text className="text-[10px] text-white/35">
               {phase === 'recommending'
-                ? 'Menghubungi DeepSeek · hanya teks yang dikirim'
+                ? 'Menghubungi Gemini · hanya teks yang dikirim'
                 : phase === 'detecting'
                   ? 'Memproses di perangkat'
                   : phase === 'error'

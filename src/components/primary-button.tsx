@@ -21,9 +21,24 @@ interface PrimaryButtonProps extends Omit<PressableProps, 'children' | 'style'> 
 }
 
 const CONTAINER: Record<ButtonVariant, string> = {
-  gold: 'bg-gold active:opacity-90 shadow-lg shadow-gold/20',
+  gold: 'bg-gold active:opacity-90',
   outline: 'border border-white/15 bg-ink-card active:bg-ink-soft',
   danger: 'border border-danger/40 bg-danger-soft active:opacity-80',
+};
+
+// Shadow via inline style: utility `shadow-*` memakai CSS variable, dan
+// menambahkannya setelah render pertama (mis. disabled -> enabled) memicu
+// warning upgrade NativeWind.
+const CONTAINER_SHADOW: Record<ButtonVariant, ViewStyle | undefined> = {
+  gold: {
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  outline: undefined,
+  danger: undefined,
 };
 
 const LABEL: Record<ButtonVariant, string> = {
@@ -53,7 +68,8 @@ export function PrimaryButton({
         className={`w-full flex-row items-center justify-center gap-2.5 rounded-2xl px-5 py-4 ${
           isDisabled ? 'border border-ink-border bg-ink-soft/60' : CONTAINER[variant]
         }`}
-        {...rest}>
+        {...rest}
+        style={isDisabled ? undefined : CONTAINER_SHADOW[variant]}>
         {loading ? (
           <ActivityIndicator size="small" color={variant === 'gold' ? '#0B0D13' : '#F59E0B'} />
         ) : (

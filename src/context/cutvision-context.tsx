@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
 import type { HairTypeId, PreferenceId } from '@/data/hairstyles';
-import type { AiRecommendation } from '@/services/deepseekService';
+import type { AiRecommendation } from '@/services/geminiService';
 import type { FaceAnalysis } from '@/services/faceLandmark/types';
 
 export interface FacePhoto {
