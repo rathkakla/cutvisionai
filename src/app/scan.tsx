@@ -7,6 +7,7 @@ import {
   CameraOff,
   ImagePlus,
   RefreshCw,
+  Scissors,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react-native';
@@ -61,7 +62,7 @@ export default function ScanScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const { hairType, preference, setPhoto, setHairType, setPreference } = useCutVision();
+  const { hairType, preference, barberMode, setPhoto, setHairType, setPreference } = useCutVision();
 
   useFocusEffect(
     useCallback(() => {
@@ -151,7 +152,8 @@ export default function ScanScreen() {
       setMessage('Pilih tipe rambut asli kamu dulu.');
       return;
     }
-    if (!preference) {
+    // Mode barber: preferensi gaya dilewati karena barber yang memutuskan di kursi.
+    if (!preference && !barberMode) {
       setMessage('Pilih preferensi gaya yang paling kamu suka.');
       return;
     }
@@ -197,6 +199,16 @@ export default function ScanScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32 }}>
           <View className="w-full max-w-lg self-center px-6">
+            {barberMode ? (
+              <View className="mt-3 flex-row items-center gap-2 rounded-2xl border border-gold/40 bg-gold-soft px-3.5 py-2.5">
+                <Scissors size={14} color="#F59E0B" />
+                <Text className="flex-1 text-[11px] leading-4 text-gold">
+                  Mode Barber aktif — preferensi gaya tidak wajib. Hasil akan menampilkan panduan
+                  cukur ukuran besar untuk ditunjukkan ke barber.
+                </Text>
+              </View>
+            ) : null}
+
             <Text className="mt-4 text-[13px] leading-5 text-white/45">
               Hadapkan wajah ke kamera depan dengan pencahayaan cukup. Tidak perlu senyum,
               cukup ekspresi santai.
@@ -377,8 +389,12 @@ export default function ScanScreen() {
             <View className="mt-7 gap-3">
               <SectionHeading
                 title="Preferensi Gaya"
-                required
-                hint="Mau terlihat seperti apa setelah keluar dari barbershop?"
+                required={!barberMode}
+                hint={
+                  barberMode
+                    ? 'Opsional di mode barber — kosongkan kalau pelanggan tidak punya permintaan khusus.'
+                    : 'Mau terlihat seperti apa setelah keluar dari barbershop?'
+                }
               />
               <View className="gap-2.5">
                 {[PREFERENCE_OPTIONS.slice(0, 2), PREFERENCE_OPTIONS.slice(2)].map((row) => (
@@ -420,6 +436,13 @@ export default function ScanScreen() {
                   </View>
                 ))}
               </View>
+              {barberMode ? (
+                <Text className="text-[11px] leading-4 text-white/40">
+                  {preference
+                    ? 'Preferensi tetap dipakai sebagai arahan tambahan untuk barber.'
+                    : 'Kosong: Gemini akan memilih gaya paling aman dan paling mudah dieksekusi barber.'}
+                </Text>
+              ) : null}
             </View>
 
             {message ? (

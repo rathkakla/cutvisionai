@@ -106,6 +106,7 @@ ATURAN PREFERENSI:
 - Kasual & Natural: tekstur longgar, tidak terlihat terlalu dirapikan.
 - Pendek Praktis: perawatan harian maksimal 2 menit.
 - Trendy/Kekinian: bentuk modern barbershop, tetap realistis untuk teksturnya.
+- "Netral (diserahkan ke barber)": pelanggan menyerahkan keputusan ke barber. Pilih 3 gaya yang paling aman untuk bentuk wajah dan teksturnya, paling mudah dieksekusi dengan clipper, dan paling sedikit butuh styling harian. Untuk ketiga gaya ini, "panduanBarber" wajib menyebut angka guard clipper di samping, panjang bagian atas dalam cm, teknik blending/elevasi fade, dan cara mengecek hasilnya sebelum pelanggan keluar dari kursi.
 
 GAYA BAHASA:
 - "alasanCocok": bahasa Indonesia santai, 2-3 kalimat, jelaskan kaitan bentuk wajah DAN tekstur rambut asli. Jangan mengulang angka rasio.

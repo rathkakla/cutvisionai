@@ -138,6 +138,24 @@ Centang semuanya; kalau ada yang gagal, bagian 6 menjelaskan cara membaca gejala
 - [ ] **Hapus Foto & Ulangi** langsung kembali ke `/`; foto asli dan semua hasil
       simulasi hilang dari memori (tab tidak menampilkan gambar lama saat sesi baru).
 
+**Mode Barber (`/profile` → switch "Mode Barber (Tukang Cukur)")**
+
+- [ ] Switch awalnya mati; menyalakannya memunculkan teks "Mode Barber aktif: layar scan…".
+- [ ] Reload halaman: switch tetap menyala (`localStorage` key `cutvision.barberMode` = `"true"`).
+- [ ] Di `/scan` muncul kartu "Mode Barber aktif — preferensi gaya tidak wajib", judul
+      **Preferensi Gaya** tanpa tanda wajib, hint berbunyi "Opsional di mode barber…".
+- [ ] Analisis dengan **hanya** tipe rambut (preferensi kosong) tetap jalan — tidak muncul
+      "Pilih preferensi gaya yang paling kamu suka.".
+- [ ] Di `/result` ada badge **MODE BARBER** dan kartu "Panduan Cukur untuk Barber" ukuran
+      besar **di atas** Preview Virtual Try-On, lengkap dengan target potongan, chip bentuk
+      wajah/rambut, serta tiga rasio (`×`).
+- [ ] Tombol **Tampilkan Layar Penuh untuk Barber** membuka modal "Barber Brief" kontras
+      tinggi; **Tutup** mengembalikan ke halaman hasil tanpa kehilangan state.
+- [ ] Matikan switch, reload: nilai jadi `"false"`; `/scan` kembali mewajibkan preferensi
+      dan analisis tanpa preferensi ditolak.
+- [ ] Di `/result` mode normal: badge **HASIL ANALISIS**, urutannya Preview Virtual Try-On →
+      Kenapa Cocok Untukmu → Panduan Cukur (tanpa tombol layar penuh).
+
 **Cek payload yang benar-benar dikirim**
 
 ```powershell
@@ -150,6 +168,8 @@ Harapan:
 - `lastBody.hasSchema` = `true` dan `responseMimeType` = `application/json`.
 - `lastBody.userPrompt` berisi `bentukWajah`, `rasio`, `keyakinanPengukuran`,
   `alternatifBentuk`, `tipeRambut`, `preferensiGaya`.
+- Mode barber tanpa preferensi: `preferensiGaya` = `"Netral (diserahkan ke barber)"`
+  (bukan `null`, bukan string kosong).
 
 ```powershell
 Invoke-WebRequest http://localhost:8787/fal/last -UseBasicParsing | Select-Object -ExpandProperty Content

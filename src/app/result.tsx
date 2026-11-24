@@ -15,20 +15,23 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Wordmark } from '@/components/brand';
+import { BarberBriefCard, BarberBriefModal } from '@/components/barber-brief';
 import { PrimaryButton } from '@/components/primary-button';
 import { SectionHeading } from '@/components/section-heading';
 import { TryOnPreview } from '@/components/try-on-preview';
 import { useCutVision } from '@/context/cutvision-context';
-import { getHairTypeLabel } from '@/data/hairstyles';
+import { getHairTypeLabel, getPreferenceLabel } from '@/data/hairstyles';
 import { readPhotoAsBase64 } from '@/lib/image';
 import { releasePickedPhotos } from '@/lib/photo-picker';
 import { TryOnError, generateVirtualTryOn, isTryOnMock, pickTryOnAspectRatio } from '@/services/tryOnService';
 
 export default function ResultScreen() {
   const router = useRouter();
-  const { photo, hairType, preference, analysis, recommendation, clearSession } = useCutVision();
+  const { photo, hairType, preference, barberMode, analysis, recommendation, clearSession } =
+    useCutVision();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [promptOpen, setPromptOpen] = useState(false);
+  const [barberSheetOpen, setBarberSheetOpen] = useState(false);
 
   // Cache sesi: index gaya → gambar hasil Fal.ai. Disimpan di state + ref supaya
   // pindah tab tidak memicu render ulang, dan reset bisa mengosongkannya seketika.
@@ -149,16 +152,17 @@ export default function ResultScreen() {
       router.replace('/');
       return;
     }
-    if (!hairType || !preference) {
+    // Mode barber tidak mewajibkan preferensi gaya.
+    if (!hairType || (!preference && !barberMode)) {
       router.replace('/scan');
       return;
     }
     if (!recommendation) {
       router.replace('/analyzing');
     }
-  }, [photo, hairType, preference, recommendation, router]);
+  }, [photo, hairType, preference, barberMode, recommendation, router]);
 
-  if (!photo || !hairType || !preference || !recommendation) {
+  if (!photo || !hairType || (!preference && !barberMode) || !recommendation) {
     return <View className="flex-1 bg-ink" />;
   }
 
@@ -173,6 +177,8 @@ export default function ResultScreen() {
       ? 'Diukur dari 478 landmark MediaPipe'
       : 'Estimasi rasio perangkat (fallback)';
   const ratioLabel = analysis?.source === 'mediapipe' ? null : 'Angka rasio tidak ditampilkan pada mode estimasi.';
+  const ratios = analysis?.source === 'mediapipe' ? analysis.measurements.ratios : null;
+  const preferenceLabel = preference ? getPreferenceLabel(preference) : 'Netral (diserahkan ke barber)';
 
   const handleReset = () => {
     // Hentikan render yang masih jalan, lalu hapus foto asli dan seluruh cache
@@ -203,11 +209,20 @@ export default function ResultScreen() {
           <View className="w-full max-w-lg self-center px-6">
             <View className="flex-row items-center justify-between pt-2">
               <Wordmark size="sm" />
-              <View className="rounded-full border border-gold-line bg-gold-soft px-3 py-1.5">
-                <Text className="text-[10px] font-semibold tracking-wide text-gold">
-                  HASIL ANALISIS
-                </Text>
-              </View>
+              {barberMode ? (
+                <View className="flex-row items-center gap-1.5 rounded-full border border-gold bg-gold px-3 py-1.5">
+                  <Scissors size={11} color="#0B0D13" />
+                  <Text className="text-[10px] font-extrabold tracking-wide text-ink">
+                    MODE BARBER
+                  </Text>
+                </View>
+              ) : (
+                <View className="rounded-full border border-gold-line bg-gold-soft px-3 py-1.5">
+                  <Text className="text-[10px] font-semibold tracking-wide text-gold">
+                    HASIL ANALISIS
+                  </Text>
+                </View>
+              )}
             </View>
 
             <View className="mt-5 items-center">
@@ -221,8 +236,9 @@ export default function ResultScreen() {
                 Ini yang paling pas{'\n'}buat kamu
               </Text>
               <Text className="mt-2 max-w-[300px] text-center text-[12.5px] leading-5 text-white/45">
-                {styles.length} opsi dari Gemini, disesuaikan dengan bentuk wajah, tekstur
-                rambut asli, dan preferensimu.
+                {barberMode
+                  ? `${styles.length} opsi dari Gemini, disiapkan untuk dikonsultasikan di kursi cukur.`
+                  : `${styles.length} opsi dari Gemini, disesuaikan dengan bentuk wajah, tekstur rambut asli, dan preferensimu.`}
               </Text>
               <View className="mt-3 flex-row items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1">
                 <View
@@ -236,6 +252,20 @@ export default function ResultScreen() {
                 <Text className="mt-2 text-[10px] text-white/30">{ratioLabel}</Text>
               ) : null}
             </View>
+
+            {barberMode ? (
+              <View className="mt-6">
+                <BarberBriefCard
+                  emphasis
+                  styleName={selected.namaGaya}
+                  faceShape={faceShape}
+                  hairTypeLabel={hairLabel}
+                  guide={selected.panduanBarber}
+                  ratios={ratios}
+                  onExpand={() => setBarberSheetOpen(true)}
+                />
+              </View>
+            ) : null}
 
             <View className="mt-6">
               <SectionHeading
@@ -316,40 +346,33 @@ export default function ResultScreen() {
                   </Text>
                 </View>
                 <Text className="mt-1.5 text-[12px] leading-5 text-white/60">
-                  Rekomendasi ini sudah mempertimbangkan rambut {hairLabel.toLowerCase()} kamu.
-                  Kalau hasil di barber melenceng dari tekstur asli, tunjukkan bagian panduan
-                  teknis di bawah.
+                  {barberMode
+                    ? `Rekomendasi ini memakai rambut ${hairLabel.toLowerCase()} dan preferensi ${preferenceLabel.toLowerCase()}. Kalau pelanggan minta arah lain, bicarakan dengan barber sebelum mulai.`
+                    : `Rekomendasi ini sudah mempertimbangkan rambut ${hairLabel.toLowerCase()} kamu. Kalau hasil di barber melenceng dari tekstur asli, tunjukkan bagian panduan teknis di bawah.`}
                 </Text>
               </View>
             </View>
 
-            <View className="mt-4 rounded-3xl border-2 border-gold/60 bg-[#1C1712] p-5">
-              <View className="flex-row items-start gap-3">
-                <View className="h-10 w-10 items-center justify-center rounded-2xl bg-gold-soft">
-                  <Scissors size={19} color="#F59E0B" />
+            {!barberMode ? (
+              <>
+                <View className="mt-4">
+                  <BarberBriefCard
+                    styleName={selected.namaGaya}
+                    faceShape={faceShape}
+                    hairTypeLabel={hairLabel}
+                    guide={selected.panduanBarber}
+                  />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-[14px] font-extrabold text-white">
-                    Panduan Cukur untuk Barber
-                  </Text>
-                  <Text className="mt-0.5 text-[10.5px] leading-4 text-white/45">
-                    Tunjukkan layar ini ke barber — bahasanya sudah teknis.
+
+                <View className="mt-3 flex-row items-start gap-2 px-1">
+                  <RotateCcw size={12} color="#6F6F6F" />
+                  <Text className="flex-1 text-[10.5px] leading-4 text-white/35">
+                    Tetap tunjukkan referensi fotonya, ya. Hasil tiap barber bisa sedikit berbeda
+                    tergantung alat dan teknik.
                   </Text>
                 </View>
-              </View>
-
-              <Text className="mt-4 text-[12.5px] leading-6 text-white/80">
-                {selected.panduanBarber}
-              </Text>
-
-              <View className="mt-4 flex-row items-start gap-2 border-t border-white/5 pt-3">
-                <RotateCcw size={12} color="#6F6F6F" />
-                <Text className="flex-1 text-[10.5px] leading-4 text-white/35">
-                  Tetap tunjukkan referensi fotonya, ya. Hasil tiap barber bisa sedikit berbeda
-                  tergantung alat dan teknik.
-                </Text>
-              </View>
-            </View>
+              </>
+            ) : null}
 
             <View className="mt-4 rounded-3xl border border-ink-border bg-ink-card">
               <Pressable
@@ -401,6 +424,16 @@ export default function ResultScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <BarberBriefModal
+        visible={barberSheetOpen}
+        onClose={() => setBarberSheetOpen(false)}
+        styleName={selected.namaGaya}
+        faceShape={faceShape}
+        hairTypeLabel={hairLabel}
+        guide={selected.panduanBarber}
+        ratios={ratios}
+      />
     </View>
   );
 }

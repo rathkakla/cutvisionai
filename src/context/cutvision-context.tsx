@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import type { HairTypeId, PreferenceId } from '@/data/hairstyles';
+import { loadBarberMode, saveBarberMode } from '@/lib/settings-store';
 import type { AiRecommendation } from '@/services/geminiService';
 import type { FaceAnalysis } from '@/services/faceLandmark/types';
 
@@ -19,6 +20,9 @@ interface CutVisionState {
 }
 
 interface CutVisionContextValue extends CutVisionState {
+  /** Mode konsultasi di kursi cukur: lewati kuis preferensi, utamakan panduan barber. */
+  barberMode: boolean;
+  setBarberMode: (enabled: boolean) => void;
   setPhoto: (photo: FacePhoto | null) => void;
   setHairType: (hairType: HairTypeId | null) => void;
   setPreference: (preference: PreferenceId | null) => void;
@@ -40,6 +44,28 @@ const CutVisionContext = createContext<CutVisionContextValue | null>(null);
 
 export function CutVisionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<CutVisionState>(initialState);
+  const [barberMode, setBarberModeState] = useState(false);
+
+  // Preferensi dibaca sekali saat aplikasi dibuka. Kalau storage belum siap,
+  // mode tetap default nonaktif sampai pengguna menyalakannya sendiri.
+  useEffect(() => {
+    let cancelled = false;
+
+    loadBarberMode().then((enabled) => {
+      if (!cancelled && enabled) {
+        setBarberModeState(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const setBarberMode = useCallback((enabled: boolean) => {
+    setBarberModeState(enabled);
+    void saveBarberMode(enabled);
+  }, []);
 
   const setPhoto = useCallback((photo: FacePhoto | null) => {
     setState((current) => {
@@ -77,6 +103,8 @@ export function CutVisionProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CutVisionContextValue>(
     () => ({
       ...state,
+      barberMode,
+      setBarberMode,
       setPhoto,
       setHairType,
       setPreference,
@@ -84,7 +112,17 @@ export function CutVisionProvider({ children }: { children: ReactNode }) {
       setRecommendation,
       clearSession,
     }),
-    [state, setPhoto, setHairType, setPreference, setAnalysis, setRecommendation, clearSession],
+    [
+      state,
+      barberMode,
+      setBarberMode,
+      setPhoto,
+      setHairType,
+      setPreference,
+      setAnalysis,
+      setRecommendation,
+      clearSession,
+    ],
   );
 
   return <CutVisionContext.Provider value={value}>{children}</CutVisionContext.Provider>;

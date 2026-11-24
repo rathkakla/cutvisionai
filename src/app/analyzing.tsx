@@ -92,7 +92,7 @@ function errorHint(code: PipelineError['code']): string {
 export default function AnalyzingScreen() {
   const router = useRouter();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const { photo, hairType, preference, analysis, setAnalysis, setRecommendation } =
+  const { photo, hairType, preference, barberMode, analysis, setAnalysis, setRecommendation } =
     useCutVision();
 
   const [phase, setPhase] = useState<Phase>('detecting');
@@ -112,7 +112,10 @@ export default function AnalyzingScreen() {
   const previewWidth = Math.min(windowWidth - 48, previewHeight * (4 / 5), 320);
 
   useEffect(() => {
-    if (!photo || !hairType || !preference) {
+    // Di mode barber preferensi gaya boleh kosong — Gemini diberi arahan netral.
+    const hasPreference = Boolean(preference) || barberMode;
+
+    if (!photo || !hairType || !hasPreference) {
       router.replace(photo ? '/scan' : '/');
       return;
     }
@@ -165,7 +168,9 @@ export default function AnalyzingScreen() {
           confidence: current.confidence,
           alternatifBentuk: current.alternatives,
           tipeRambut: getHairTypeLabel(hairType),
-          preferensiGaya: getPreferenceLabel(preference),
+          preferensiGaya: preference
+            ? getPreferenceLabel(preference)
+            : 'Netral (diserahkan ke barber)',
         });
 
         if (cancelled) {
@@ -206,7 +211,7 @@ export default function AnalyzingScreen() {
       }
     };
     // `analysisRef` sengaja dibaca lewat ref supaya retry API tidak memicu deteksi ulang.
-  }, [attempt, photo, hairType, preference, router, setAnalysis, setRecommendation]);
+  }, [attempt, photo, hairType, preference, barberMode, router, setAnalysis, setRecommendation]);
 
   // Progres berjalan pelan selama menunggu supaya layar tidak terlihat macet,
   // lalu berhenti di batas atas masing-masing fase.

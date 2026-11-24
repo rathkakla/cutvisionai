@@ -12,7 +12,6 @@ import {
   Store,
   User,
 } from 'lucide-react-native';
-import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,8 +19,7 @@ import { useCutVision } from '@/context/cutvision-context';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { clearSession } = useCutVision();
-  const [isBarberMode, setIsBarberMode] = useState(false);
+  const { clearSession, barberMode, setBarberMode } = useCutVision();
 
   const handleReset = () => {
     clearSession();
@@ -70,17 +68,22 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <Switch
-                value={isBarberMode}
-                onValueChange={setIsBarberMode}
+                value={barberMode}
+                onValueChange={setBarberMode}
                 trackColor={{ false: '#23293D', true: '#F59E0B' }}
                 thumbColor="#FFFFFF"
               />
             </View>
 
-            {isBarberMode && (
-              <View className="mt-3.5 border-t border-ink-border/80 pt-3">
+            {barberMode && (
+              <View className="mt-3.5 gap-1.5 border-t border-ink-border/80 pt-3">
                 <Text className="text-[11px] font-semibold text-gold">
-                  ✓ Mode Barber Aktif: Scanner akan langsung mengekstrak nomor guard clipper tanpa kuis preferensi awal.
+                  ✓ Mode Barber aktif: layar scan tidak lagi meminta preferensi gaya, dan hasil
+                  langsung menampilkan panduan cukur ukuran besar.
+                </Text>
+                <Text className="text-[10.5px] leading-4 text-white/40">
+                  Pilih preferensi tetap bisa dilakukan kalau pelanggan punya permintaan khusus.
+                  Mode ini tersimpan di perangkat ini.
                 </Text>
               </View>
             )}
